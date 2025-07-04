@@ -1,0 +1,2 @@
+I loaded the Breast Cancer dataset, which is binary (malignant or benign).
+Then I normalized the features because SVMs are sensitive to scale. For easy visualization, I used only first two features. I trained two SVMs: one with linear kernel, and one with RBF kernel, and checked accuracy. We plotted decision boundaries so we can “see” how SVM separates classes. Finally, we did a grid search to find the best hyperparameters (C and gamma) using cross-validation.
