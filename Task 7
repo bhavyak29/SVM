@@ -1,0 +1,78 @@
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn import datasets
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from matplotlib.colors import ListedColormap
+
+
+cancer = datasets.load_breast_cancer()
+X = cancer.data
+y = cancer.target
+print("Dataset shape:", X.shape)
+
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+
+X_vis = X_scaled[:, :2]
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X_vis, y, test_size=0.3, random_state=42)
+
+# Train SVM with linear kernel
+svc_linear = SVC(kernel='linear', C=1.0)
+svc_linear.fit(X_train, y_train)
+y_pred_linear = svc_linear.predict(X_test)
+
+print("\nLinear Kernel Accuracy:", accuracy_score(y_test, y_pred_linear))
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred_linear))
+
+# SVM with RBF kernel
+svc_rbf = SVC(kernel='rbf', gamma='scale', C=1.0)
+svc_rbf.fit(X_train, y_train)
+y_pred_rbf = svc_rbf.predict(X_test)
+
+print("\nRBF Kernel Accuracy:", accuracy_score(y_test, y_pred_rbf))
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred_rbf))
+
+def plot_decision_boundary(model, X, y, title):
+    h = 0.02
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                         np.arange(y_min, y_max, h))
+    Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+    plt.figure(figsize=(10, 6))
+    cmap_light = ListedColormap(['#FFAAAA', '#AAAAFF'])
+    cmap_bold = ListedColormap(['#FF0000', '#0000FF'])
+    plt.contourf(xx, yy, Z, cmap=cmap_light, alpha=0.5)
+    plt.scatter(X[:, 0], X[:, 1], c=y, cmap=cmap_bold, edgecolor='k')
+    plt.title(title)
+    plt.xlabel('Feature 1 (scaled)')
+    plt.ylabel('Feature 2 (scaled)')
+    plt.show()
+
+plot_decision_boundary(svc_linear, X_vis, y, "Decision Boundary with Linear Kernel")
+plot_decision_boundary(svc_rbf, X_vis, y, "Decision Boundary with RBF Kernel")
+
+param_grid = {
+    'C': [0.1, 1, 10],
+    'gamma': ['scale', 0.01, 0.1, 1]
+}
+svc = SVC(kernel='rbf')
+grid = GridSearchCV(svc, param_grid, refit=True, cv=5)
+grid.fit(X_scaled, y)
+
+print("\nBest Parameters from Grid Search:", grid.best_params_)
+print("Best Cross-Validation Score:", grid.best_score_)
+
+# Evaluate model
+y_best_pred = grid.predict(X_scaled)
+print("\nClassification Report for Best Model:\n", classification_report(y, y_best_pred))
